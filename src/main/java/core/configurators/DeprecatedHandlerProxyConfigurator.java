@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -23,17 +24,17 @@ public class DeprecatedHandlerProxyConfigurator implements ProxyConfigurator {
   }
 
   private Object getProxy(Object t, Class<?> implClass, Predicate<Method> changeLogic) {
-    //    if (implClass.getInterfaces().length == 0) {
-    return Enhancer.create(
-        implClass,
-        (net.sf.cglib.proxy.InvocationHandler)
-            (proxy, method, args) -> proxyInvocationLogic(method, args, changeLogic, t));
-    //    }
+    if (implClass.getInterfaces().length == 0) {
+      return Enhancer.create(
+          implClass,
+          (net.sf.cglib.proxy.InvocationHandler)
+              (proxy, method, args) -> proxyInvocationLogic(method, args, changeLogic, t));
+    }
 
-    //    return Proxy.newProxyInstance(
-    //            implClass.getClassLoader(),
-    //            implClass.getInterfaces(),
-    //            (proxy, method, args) -> proxyInvocationLogic(method, args, changeLogic, t));
+    return Proxy.newProxyInstance(
+        implClass.getClassLoader(),
+        implClass.getInterfaces(),
+        (proxy, method, args) -> proxyInvocationLogic(method, args, changeLogic, t));
   }
 
   private Object proxyInvocationLogic(
@@ -53,7 +54,36 @@ public class DeprecatedHandlerProxyConfigurator implements ProxyConfigurator {
   }
 
   private Set<Method> getDeprecatedMethods(Class<?> implClass) {
-    return Arrays.stream(implClass.getDeclaredMethods())
+    Set<Class<?>> visited = new HashSet<>();
+    Set<Method> methods = getDeprecatedMethodsCurrentType(implClass);
+    methods.addAll(getDeprecatedMethodsRecursive(implClass, visited));
+    //    return methods.stream().map((method) -> {
+    //      method.
+    //    }).collect(Collectors.toSet());
+
+    return methods;
+  }
+
+  private Set<Method> getDeprecatedMethodsRecursive(Class<?> clazz, Set<Class<?>> visited) {
+    if (clazz == null || clazz.equals(Object.class)) {
+      return new HashSet<>();
+    }
+
+    Set<Method> methods = getDeprecatedMethodsCurrentType(clazz);
+
+    Class[] in = clazz.getInterfaces();
+    for (Class aClass : in) {
+      if (visited.contains(aClass)) continue;
+      visited.add(aClass);
+      methods.addAll(getDeprecatedMethodsRecursive(aClass, visited));
+    }
+    methods.addAll(getDeprecatedMethodsRecursive(clazz.getSuperclass(), visited));
+
+    return methods;
+  }
+
+  private Set<Method> getDeprecatedMethodsCurrentType(Class<?> clazz) {
+    return Arrays.stream(clazz.getDeclaredMethods())
         .filter(method -> method.isAnnotationPresent(Deprecated.class))
         .collect(Collectors.toSet());
   }
