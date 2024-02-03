@@ -30,6 +30,7 @@ public class InjectPropertyAnnotationObjectConfigurator implements ObjectConfigu
     Stream<String> lines = new BufferedReader(new FileReader(resource.getPath())).lines();
 
     return lines
+        .filter(line -> !line.startsWith("#"))
         .map(line -> line.split("="))
         .collect(toMap(arr -> arr[0].trim(), arr -> arr[1].trim()));
   }
@@ -47,11 +48,19 @@ public class InjectPropertyAnnotationObjectConfigurator implements ObjectConfigu
   }
 
   private void injectType(Object t, Field field, InjectProperty annotation)
-      throws IllegalAccessException {
+      throws IllegalAccessException, RuntimeException {
     String value =
         annotation.value().isEmpty()
             ? propertiesMap.get(field.getName())
             : propertiesMap.get(annotation.value());
+
+    if (value == null) {
+      throw new RuntimeException(
+          String.format(
+              "Can't configurate object: %s - field `%s`, injected value is null",
+              t.getClass().getName(), field.getName()));
+    }
+
     field.setAccessible(true);
     field.set(t, value);
   }

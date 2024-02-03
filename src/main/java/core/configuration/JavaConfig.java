@@ -1,15 +1,18 @@
 package core.configuration;
 
+import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import core.annotations.Qualifier;
+import lombok.Getter;
 import org.reflections.Reflections;
 
-public class JavaConfig implements Config {
+public final class JavaConfig implements Config {
 
+  @Getter
   private final Reflections scanner;
   private final Map<Class, Class> ifc2ImplClass;
 
@@ -28,11 +31,11 @@ public class JavaConfig implements Config {
 
     if (classes.isEmpty()) throw new RuntimeException("Ambiguity - " + ifc + " has 0 implements");
 
-    if (classes.size() == 1) {
-      return classes.iterator().next();
-    }
+    List<Class<? extends T>> concreteClasses = getConcreteClasses(classes);
 
-    return getQualifierImplementation(ifc, classes);
+    return concreteClasses.size() == 1
+        ? concreteClasses.iterator().next()
+        : getQualifierImplementation(ifc, classes);
   }
 
   private <T> Class<? extends T> getQualifierImplementation(
@@ -41,6 +44,12 @@ public class JavaConfig implements Config {
     throwsIfAmbiguity(ifc, classes, list);
 
     return list.iterator().next();
+  }
+
+  private <T> List<Class<? extends T>> getConcreteClasses(Collection<Class<? extends T>> classes) {
+    return classes.stream()
+        .filter(clazz -> !clazz.isInterface() && !Modifier.isAbstract(clazz.getModifiers()))
+        .collect(Collectors.toList());
   }
 
   private <T> void throwsIfAmbiguity(

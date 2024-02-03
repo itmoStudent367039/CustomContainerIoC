@@ -4,9 +4,11 @@ import java.lang.reflect.Field;
 
 import core.ApplicationContext;
 import core.annotations.InjectByType;
+import core.configuration.Config;
 import lombok.SneakyThrows;
 
 public class InjectByTypeAnnotationObjectConfigurator implements ObjectConfigurator {
+  // todo: init proxy to inject field! (Lazy injection)
   @Override
   @SneakyThrows
   public void configure(Object t, ApplicationContext context) {

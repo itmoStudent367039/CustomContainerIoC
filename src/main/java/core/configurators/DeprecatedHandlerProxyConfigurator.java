@@ -55,13 +55,7 @@ public class DeprecatedHandlerProxyConfigurator implements ProxyConfigurator {
 
   private Set<Method> getDeprecatedMethods(Class<?> implClass) {
     Set<Class<?>> visited = new HashSet<>();
-    Set<Method> methods = getDeprecatedMethodsCurrentType(implClass);
-    methods.addAll(getDeprecatedMethodsRecursive(implClass, visited));
-    //    return methods.stream().map((method) -> {
-    //      method.
-    //    }).collect(Collectors.toSet());
-
-    return methods;
+    return getDeprecatedMethodsRecursive(implClass, visited);
   }
 
   private Set<Method> getDeprecatedMethodsRecursive(Class<?> clazz, Set<Class<?>> visited) {

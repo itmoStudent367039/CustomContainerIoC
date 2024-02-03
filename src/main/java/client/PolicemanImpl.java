@@ -4,6 +4,7 @@ import javax.annotation.PostConstruct;
 
 public class PolicemanImpl implements Policeman {
 
+
   @PostConstruct
   public void init() {}
 
